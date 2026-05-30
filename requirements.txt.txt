@@ -1,0 +1,10 @@
+requirements.txt
+
+streamlit
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+openpyxl
+xlrd
