@@ -257,46 +257,28 @@ def proses_lengkap(uploaded_file):
         'silhouette_score': 0,
         'wcss_data': None,
         'k_range': None,
-        'centroid': None,
         'statistik': {},
         'atribut': []
     }
     
     try:
-        # 1. Load Dataset
         df = pd.read_excel(uploaded_file)
-        
-        # 2. Data Cleaning
         df_clean, _ = data_cleaning(df)
-        
-        # 3. Seleksi Atribut
         df_selected, atribut = seleksi_atribut(df_clean)
-        
-        # 4. Hitung Rata-rata
         df_selected = hitung_rata_rata(df_selected, atribut)
-        
-        # 5. Normalisasi Data
         df_normalized, _ = normalisasi_data(df_selected, atribut)
-        
-        # 6. Clustering K-Means (K=3 sesuai batasan masalah)
-        clusters, centroid = clustering_kmeans(df_normalized, atribut, n_clusters=3)
-        
-        # Simpan centroid untuk ditampilkan di hasil
-        hasil_proses['centroid'] = centroid
-        
-        # 7. Pemetaan Kategori
+        clusters, _ = clustering_kmeans(df_normalized, atribut)
         df_clustered = pemetaan_cluster(df_selected, clusters)
-        
-        # 8. Perangkingan
         df_final = perangkingan_siswa(df_clustered)
         
-        # 9. Evaluasi
-        X_eval = df_normalized[atribut].values
-        sil_score = evaluasi_model(X_eval, df_final['Cluster'].values, 3)
-        k_range, wcss = hitung_wcss(X_eval)
+        X = df_normalized[atribut].values
+        sil_score = evaluasi_model(X, df_final['Cluster'].values, 3)
+        k_range, wcss = hitung_wcss(X)
         
-        # 10. Statistik Ringkas
-        distribusi = df_final['Kategori'].value_counts().to_dict()
+        distribusi = {}
+        for kat in df_final['Kategori'].unique():
+            distribusi[kat] = int(df_final[df_final['Kategori'] == kat].shape[0])
+        
         hasil_proses['statistik'] = {
             'total_siswa': len(df_final),
             'jumlah_cluster': 3,
@@ -317,7 +299,6 @@ def proses_lengkap(uploaded_file):
         hasil_proses['messages'].append(str(e))
     
     return hasil_proses
-
 # ======================== INISIALISASI SESSION STATE ========================
 if 'data_terproses' not in st.session_state:
     st.session_state.data_terproses = None
@@ -477,6 +458,18 @@ else:
         Tujuannya agar tidak ada mata pelajaran yang mendominasi perhitungan jarak Euclidean pada algoritma K-Means.
         """)
         st.markdown("</div>", unsafe_allow_html=True)
+
+    # Tampilkan Nilai Pusat Kelompok (Centroid)
+        st.markdown("<div class='card'><div class='card-title'>📍 Nilai Pusat Kelompok Akhir (Centroid)</div>", unsafe_allow_html=True)
+        if hasil['centroid'] is not None:
+        df_centroid = pd.DataFrame(
+        hasil['centroid'], 
+        columns=atribut, 
+        index=['Kelompok Tinggi', 'Kelompok Sedang', 'Kelompok Rendah']
+    )
+    st.dataframe(df_centroid.round(4), use_container_width=True)
+    st.info("Nilai di atas merupakan nilai pusat kelompok hasil iterasi terakhir sebelum proses berhenti. Semakin jauh jarak antar nilai pusat, semakin baik pemisahan datanya.")
+st.markdown("</div>", unsafe_allow_html=True)
 
         # Tampilkan contoh data centroid
         st.markdown("<div class='card'><div class='card-title'>3. Nilai Centroid (Pusat Cluster)</div>", unsafe_allow_html=True)
